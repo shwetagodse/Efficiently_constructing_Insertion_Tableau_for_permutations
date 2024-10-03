@@ -1,0 +1,105 @@
+//Returns number of comparisons and time taken to run 1000 inputs of varied sizes (i.e., 10^2, 10^3 , 10^4) according to file input.
+
+#include <iostream>
+
+#include <vector>
+
+#include <fstream>
+
+#include <sstream>
+
+using namespace std;
+
+std::vector < int > rowmax; // Maximum element in a row
+int count = 0;             // Counts number of comparisons
+
+// Binary search to find the successor index
+int binarySearch(const vector < int > & row, int alpha) {
+  int low = 0;
+  int high = row.size() - 2;
+  int successor = row.size() - 1; // Default to end of row
+
+  while (low <= high) {
+    int mid = low + (high - low) / 2;
+    if (row[mid] < alpha) {
+      low = mid + 1;
+      count++;
+    } else {
+      successor = mid;
+      high = mid - 1;
+      count++;
+    }
+  }
+  return successor;
+}
+
+void NBS(vector < vector < int > > & InsTableau, int alpha, int row) {
+  if (InsTableau.empty() || row >= InsTableau.size()) {
+    InsTableau.push_back(vector < int > { alpha });
+    rowmax.push_back(alpha);                       // Update rowmax for the new row
+  } else if (alpha > InsTableau[row].back()) {
+    InsTableau[row].push_back(alpha);
+    rowmax[row] = alpha;                        // Update rowmax for the existing row
+    count++;
+  }
+  // In this situation, alpha is smaller than the max and hence successor exists
+  else {
+    count++;
+    int successor = binarySearch(InsTableau[row], alpha);
+    int t = InsTableau[row][successor];
+    InsTableau[row][successor] = alpha;
+    NBS(InsTableau, t, row + 1);           // Recursively call RSK for the next row   
+  }
+}
+
+vector < vector < int > > importPermutationsFromFile(const string & filename) {
+  vector < vector < int > > permutations;
+  ifstream file(filename);
+  if (file.is_open()) {
+    string line;
+    while (getline(file, line)) {
+      vector < int > permutation;
+      istringstream iss(line);
+      int num;
+      while (iss >> num) {
+        permutation.push_back(num);
+      }
+      permutations.push_back(permutation);
+    }
+    file.close();
+  } else {
+    cerr << "Unable to open file: " << filename << endl;
+  }
+  return permutations;
+}
+
+int main() {
+  std::vector < std::vector < int > > InsTableau;
+  vector < vector < int > > permutations = importPermutationsFromFile("Permutation_File.txt");
+  int row = 0;
+
+  clock_t start, end;
+
+  /* Recording the starting clock tick.*/
+  start = clock();
+
+  // Iterate through the permutation and insert elements into InsTableau using RSK
+  for (int i = 0; i < permutations.size(); ++i) {
+    for (int num: permutations[i]) {
+      NBS(InsTableau, num, row);
+    }
+    InsTableau.clear();
+    cout << count << endl;
+    count = 0;
+  }
+
+  // Recording the end clock tick.
+  end = clock();
+
+  // Calculating total time taken by the program.
+  double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+  cout << "Time taken by program is : " << fixed << time_taken;
+  cout << " sec " << endl;
+
+  return 0;
+}
