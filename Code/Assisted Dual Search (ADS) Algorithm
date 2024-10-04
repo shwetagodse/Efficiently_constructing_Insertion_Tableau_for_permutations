@@ -370,7 +370,7 @@ int main() {
   clock_t start, end;
 
   // Iterate through the permutation and insert elements into the Insertion Tableau
-  vector < vector < int >> permutations = importPermutationsFromFile("Per.txt");
+  vector < vector < int >> permutations = importPermutationsFromFile("Permutation_File.txt");
   int row = 0;
   // ptrindex stores the column index of PM where last insertion was done. It is initially set to 0. 
   int ptrindex = 0;    
