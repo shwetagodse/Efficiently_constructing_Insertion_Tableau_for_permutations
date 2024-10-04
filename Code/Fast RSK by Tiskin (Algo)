@@ -128,7 +128,7 @@ int main() {
   clock_t start, end;
 
   // Iterate through the permutation and insert elements into Young InsTableau
-  vector < vector < int >> permutations = importPermutationsFromFile("Perm.txt");
+  vector < vector < int >> permutations = importPermutationsFromFile("Permutation_File.txt");
 
   /* Recording the starting clock tick.*/
   start = clock();
