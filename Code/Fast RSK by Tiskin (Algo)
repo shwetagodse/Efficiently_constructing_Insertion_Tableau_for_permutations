@@ -1,1 +1,174 @@
+#include <iostream>
+
+#include <vector>
+
+#include <sstream>
+
+#include <fstream>
+
+using namespace std;
+
+int count = 0; // COUNTS NO. OF COMPARISONS
+vector < int > exitpermutation;
+vector < int > discarded;
+
+// Binary search to find the successor index
+int binarySearch(const vector < int > & trow, int alpha, int low, int high) {
+  int successor = high + 1; // Default to end of row
+
+  while (low <= high) {
+    int mid = low + (high - low) / 2;
+
+    if (trow[mid] < alpha) {
+      low = mid + 1;
+    } else {
+      successor = mid;
+      high = mid - 1;
+    }
+    if (successor != low && mid != high && mid != 0 && successor != (trow.size() - 1)) {
+      count++;
+    }
+    if ((mid == 0) && trow.size() > 1) {
+      count++;
+    }
+  }
+  return successor;
+}
+
+// Doubling search to find the successor index
+int doublingSearch(const vector < int > & trow, int alpha, int & doublingindex) {
+  int idx = 1;
+  int length = trow.size() - 1;
+
+  while (idx < length && trow[length - idx] > alpha && (length - idx) >= 0) {
+    idx *= 2;
+    count++;
+  }
+
+  if ((length - idx) > 0) {
+    count++;
+  }
+  doublingindex = idx;
+  return max((length - idx), 0);
+}
+
+// Function to perform linear traversal and insert element
+void FastRSK(vector < vector < int >> & InsTableau, int alpha, int row) {
+  // Check if the InsTableau is empty or the row index is out of bounds
+  if (InsTableau.empty() || row >= InsTableau.size()) {
+    // Create a new row and insert the alpha
+    InsTableau.push_back(vector < int > {alpha});
+    return;
+  } else {
+    if (alpha > InsTableau[row].back()) {
+      // Append the new alpha to the InsTableau
+      InsTableau[row].push_back(alpha);
+      count++;
+    } else {
+      // Otherwise, perform linear traversal as before
+      int t;
+      int end;
+      int doublingindex;
+      count++;
+
+      // Find the range where the alpha can be replaced in the InsTableau row using doubling search
+      int rangeEnd = doublingSearch(InsTableau[row], alpha, doublingindex);
+      int length = InsTableau[row].size() - 1;
+      if ((length - (doublingindex / 2)) >= 0) {
+        end = length - (doublingindex / 2);
+      } else {
+        end = 0;
+      }
+      // Perform binary search within the range to find the position of the alpha
+      int low = rangeEnd;
+      int high = min(end, (int) InsTableau[row].size() - 2);
+      int successor = binarySearch(InsTableau[row], alpha, low, high);
+      // Insert the alpha at the found position
+
+      if (row == 0) {
+        t = InsTableau[row][successor];
+        InsTableau[row][successor] = alpha;
+        exitpermutation.push_back(t);
+      }
+      else {
+        t = InsTableau[row][successor];
+        InsTableau[row][successor] = alpha;
+        discarded.push_back(t);
+      }
+      return;
+    }
+  }
+}
+
+vector < vector < int >> importPermutationsFromFile(const string & filename) {
+  vector < vector < int >> permutations;
+  ifstream file(filename);
+  if (file.is_open()) {
+    string line;
+    while (getline(file, line)) {
+      vector < int > permutation;
+      istringstream iss(line);
+      int num;
+      while (iss >> num) {
+        permutation.push_back(num);
+      }
+      permutations.push_back(permutation);
+    }
+    file.close();
+  } else {
+    cerr << "Unable to open file: " << filename << endl;
+  }
+  return permutations;
+}
+
+int main() {
+  // Initial InsTableau setup
+  int row = 0;
+  vector < vector < int >> InsTableau;
+  clock_t start, end;
+
+  // Iterate through the permutation and insert elements into Young InsTableau
+  vector < vector < int >> permutations = importPermutationsFromFile("Perm.txt");
+
+  /* Recording the starting clock tick.*/
+  start = clock();
+
+  // Iterate through the permutation and insert elements into Young Tableau
+  for (int i = 0; i < permutations.size(); ++i) {
+    for (int num: permutations[i]) {
+      FastRSK(InsTableau, num, row);
+    }
+    row++;
+    // Insert elements from reversed exit permutation into InsTableau and store discarded elements
+    while (!exitpermutation.empty()) {
+      int alpha = exitpermutation.back();
+      exitpermutation.pop_back();
+
+      FastRSK(InsTableau, alpha, row); // Insert into the next row
+
+      if (exitpermutation.empty()) {
+        exitpermutation = discarded;
+        discarded.clear();
+        row++;
+      }
+    }
+    cout << count << endl;
+    count = 0;
+    row = 0;
+    InsTableau.clear();
+  }
+
+  // Recording the end clock tick.
+  end = clock();
+
+  // Calculating total time taken by the program.
+  double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+  cout << "Time taken by program is : " << fixed <<
+    time_taken;
+  cout << " sec " << endl;
+  return 0;
+}
+
+
+
 
