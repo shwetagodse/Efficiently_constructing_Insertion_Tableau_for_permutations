@@ -1,0 +1,404 @@
+#include <iostream>
+
+#include <vector>
+
+#include <algorithm>
+
+#include <fstream>
+
+#include <sstream>
+
+using namespace std;
+
+int counter = 0; // COUNTS NO. OF COMPARISONS
+int index;      // INSERTION TABLEAU INDEX (i.e., column no. of InsTableau) PRESENT IN POINTER TABLEAU
+int z;         // TO STORE PREVIOUS POINTER INDEX
+int beta;     // DISPLACED ELEMENT VALUE 
+int gamma;   // ELEMENT PUSHED DOWN FROM PREVIOUS ROW FOR COLUMN 0 WHEN INSERTION TABLEAU SIZE = 2
+int successorIndex; // STORES successorIndex FROM binarySearch
+
+// Binary search to find the successor index
+int binarySearch(const vector < int > & trow, int alpha, int startIndex, int endindex) {
+  int low = startIndex;
+  int high = endindex;
+  int successor = endindex; // Default to end of row
+
+  while (low <= high) {
+    int mid = low + (high - low) / 2;
+
+    if (trow[mid] < alpha) {
+      low = mid + 1;
+      counter++;
+    } else {
+      successor = mid;
+      high = mid - 1;
+      counter++;
+    }
+  }
+  return successor;
+}
+
+// Function to perform linear traversal and insert element
+void ModifiedLinearSearch(vector < vector < int >> & InsTableau, vector < vector < int >> & PM, int alpha, int row, int ptrindex) {
+  // Check if the InsTableau is empty.
+
+  if (InsTableau.empty() == 0) {
+
+    if (alpha > InsTableau[row][PM[row][0]]) {
+      // Append the new alpha to the InsTableau
+      InsTableau[row].push_back(alpha);
+      // Update p_1 pointer to point to the new alpha
+      PM[row][0] = InsTableau[row].size() - 1;
+      counter++;
+    } else if (ptrindex == 0) {
+      // Otherwise, perform linear traversal as before
+      counter++;
+      for (int i = 1; i <= PM[row].size() - 1; i++) {
+        if (PM[row][i] != PM[row][i - 1]) {
+          index = PM[row][i]; // Get index from pointer matrix (PM)vector
+
+          if (InsTableau[row][index] < alpha) {
+            // Perform linear traversal to find successor
+            z = PM[row][i - 1];
+
+            if ((z - index) <= 5) {
+
+              while (index < InsTableau[row].size() && InsTableau[row][index] < alpha) {
+
+                if (index <= InsTableau[row].size() - 1 && PM[row][i] != PM[row][i - 1]) {
+                  counter++; // Making sure extra comparison with last element is avoided.
+                }
+                index++;
+              }
+
+              beta = InsTableau[row][index];
+              // Insert alpha at the found index
+              InsTableau[row][index] = alpha;
+              // Update the pointer to point to the new location
+              PM[row][i] = index;
+              if (index != z) {
+                counter++;
+              }
+              ptrindex = index;
+
+            } else {
+
+              // Perform binary search on the pointer matrix (PM) vector to find the successor
+              int successorIndex = binarySearch(InsTableau[row], alpha, index, z);
+
+              beta = InsTableau[row][successorIndex];
+              // Insert alpha at the found index
+              InsTableau[row][successorIndex] = alpha;
+              // Update the pointer to point to the new location
+              PM[row][i] = successorIndex;
+              if (successorIndex != z) {
+                counter++;
+              }
+              ptrindex = successorIndex;
+            }
+
+            row++;
+            if (row == InsTableau.size()) {
+              InsTableau.push_back(vector < int > {beta});
+              int tabsize = InsTableau[row].size();
+              PM.push_back(vector < int > {tabsize - 1});
+            } else {
+              ModifiedLinearSearch(InsTableau, PM, beta, row, ptrindex);
+            }
+            return;
+          }
+          counter++;
+        }
+      }
+
+      // Check if new alpha is less than the last element pointed by the last pointer
+
+      index = 0;
+      while (index < InsTableau[row].size() && InsTableau[row][index] < alpha) {
+        index++;
+        counter++;
+      }
+
+      beta = InsTableau[row][index];
+      // Insert alpha at the found index
+      InsTableau[row][index] = alpha;
+      // Set a new pointer p_new to this location
+
+      if (index != PM[row].back()) { // TO AVOID COUNTING WITH THE LAST POINTER TWICE IF 
+        counter++;                  // THE NEW ELEMENT IS TO BE INSERTED IN THE LAST POINTER LOCATION.
+      }
+      ptrindex = index;
+
+      if (index == 0) {
+        // Shift elements in the first column down by one row
+        for (int i = InsTableau.size() - 1; i > row + 1; i--) {
+          if (i != InsTableau.size() - 1) {
+            InsTableau[i][0] = InsTableau[i - 1][0];
+            // Push the pointer to the new location
+            PM[i].push_back(0);
+
+          } else {
+            gamma = InsTableau[i][0];
+            InsTableau[i][0] = InsTableau[i - 1][0];
+            PM[i].push_back(0);
+            // Create a new row and push gamma
+            InsTableau.push_back(vector < int > {gamma});
+            // Push the pointer to the new location
+            PM.push_back(vector < int > {0});
+          }
+        }
+
+        if ((InsTableau.size() - row) == 2) // When the tab.size is 2 so, for inserting new element, existing element in cell (0,0)
+        { // is saved in beta, cell (0,0) gets alpha, cell (1,0) gets beta and
+          // so prev. element in cell (1,0) is placed in new row.
+          gamma = InsTableau[row + 1][0];
+
+          // Create a new row and push gamma
+          InsTableau.push_back(vector < int > {gamma});
+          // Push the pointer to the new location
+          PM.push_back(vector < int > {0});
+        }
+        // Push the displaced element to the next row
+        if (row + 1 < InsTableau.size()) {
+          InsTableau[row + 1][0] = beta;
+          // Push the pointer to the new location
+          PM[row + 1].push_back(0);
+          PM[row].push_back(index);
+        } else if (row + 1 == InsTableau.size()) {
+          PM[row].push_back(0);
+          // Create a new row and push beta
+          InsTableau.push_back(vector < int > {beta});
+          // Push the pointer to the new location
+          PM.push_back(vector < int > {0});
+        }
+      } else {
+        if ((row + 1) == InsTableau.size()) {
+          InsTableau.push_back(vector < int > {beta});
+          int tablsize = InsTableau[row + 1].size();
+          PM.push_back(vector < int > {tablsize - 1});
+          PM[row].push_back(index);
+        } else {
+          PM[row].push_back(index);
+          ModifiedLinearSearch(InsTableau, PM, beta, row + 1, ptrindex);
+        }
+      }
+      return;
+    } else {
+      counter++;
+
+      int successor_of_ptrindex;
+      int index_of_successor;
+      for (int i = 1; i < PM[row].size(); ++i) {
+
+        if (PM[row][i] <= ptrindex &&
+          PM[row][i] != PM[row][i - 1] && PM[row][i] != PM[row][0]) {
+          successor_of_ptrindex = PM[row][i];
+          index_of_successor = i;
+          break;
+        }
+      }
+
+      if (InsTableau[row].size() > 1) { // TO AVOID COMPARING WITH GREATEST ELEMENT TWICE WHEN TABLEAU SIZE IS 1
+        if (index_of_successor > 0) {
+          for (int p = index_of_successor; p < PM[row].size(); p++) {
+
+            if (PM[row][p] != PM[row][p - 1]) {
+
+              index = PM[row][p]; // Get index from pointer matrix (PM) vector
+              if (InsTableau[row][index] < alpha) {
+                // Perform linear traversal to find successor
+                z = PM[row][p - 1];
+
+                if ((z - index) <= 5) {
+                  while (index < InsTableau[row].size() && InsTableau[row][index] < alpha) {
+                    index++;
+                    if (index <= InsTableau[row].size() - 1 && PM[row][p] != PM[row][p - 1]) {
+                      counter++; // Making sure extra comparison with last element is avoided.
+                    }
+                  }
+
+                  beta = InsTableau[row][index];
+                  // Insert alpha at the found index
+                  InsTableau[row][index] = alpha;
+                  // Update the pointer to point to the new location
+                  PM[row][p] = index;
+                  if (index != z) {
+                    counter++;
+                  }
+                  ptrindex = index;
+                } else {
+
+                  // Perform binary search on the pointer vector to find the successor
+                  successorIndex = binarySearch(InsTableau[row], alpha, index, z);
+
+                  beta = InsTableau[row][successorIndex];
+                  // Insert alpha at the found index
+                  InsTableau[row][successorIndex] = alpha;
+                  // Update the pointer to point to the new location
+                  PM[row][p] = successorIndex;
+                  if (successorIndex != z) {
+                    counter++;
+                  }
+                  ptrindex = successorIndex;
+
+                }
+                row++;
+                if (row == InsTableau.size()) {
+                  InsTableau.push_back(vector < int > {beta});
+                  int tabsize = InsTableau[row].size();
+                  PM.push_back(vector < int > {tabsize - 1});
+                } else {
+                  ModifiedLinearSearch(InsTableau, PM, beta, row, ptrindex);
+                }
+                return;
+              }
+              counter++;
+            }
+
+          }
+        }
+      }
+
+      // Check if the new alpha is less than the last element pointed by the last pointer
+      index = 0;
+
+      while (index < InsTableau[row].size() && InsTableau[row][index] < alpha) {
+        index++;
+        counter++;
+      }
+      beta = InsTableau[row][index];
+      // Insert alpha at the found index
+      InsTableau[row][index] = alpha;
+      ptrindex = index;
+      // Set a new pointer p_new to this location
+
+      if (index != PM[row].back()) { // TO AVOID COUNTING WITH THE LAST POINTER INDEX TWICE IF 
+        counter++;                  // THE NEW VALUE IS TO BE INSERTED IN THE LAST POINTER INDEX
+      }
+
+      if (index == 0) {
+        // Shift elements in the first column down by one row
+        for (int i = InsTableau.size() - 1; i > row + 1; i--) {
+          if (i != InsTableau.size() - 1) {
+            InsTableau[i][0] = InsTableau[i - 1][0];
+            // Push the pointer to the new location
+            PM[i].push_back(0);
+          } else {
+            gamma = InsTableau[i][0];
+            InsTableau[i][0] = InsTableau[i - 1][0];
+            PM[i].push_back(0);
+            // Create a new row and push gamma
+            InsTableau.push_back(vector < int > {gamma});
+            // Push the pointer to the new location
+            PM.push_back(vector < int > {0});
+          }
+        }
+
+        if ((InsTableau.size() - row) == 2) // When the tab.size is 2 so, for inserting new element (0,0)
+        { // is saved in beta, (0,0) gets new val, (1,0) gets beta and
+          // so prev. (1,0) is placed in new row
+          gamma = InsTableau[row + 1][0];
+          // Create a new row and push gamma
+          InsTableau.push_back(vector < int > {gamma});
+          // Push the pointer to the new location
+          PM.push_back(vector < int > {0});
+        }
+        // Push the displaced element to the next row
+        if (row + 1 < InsTableau.size()) {
+          InsTableau[row + 1][0] = beta;
+          // Push the pointer to the new location
+          PM[row + 1].push_back(0);
+          PM[row].push_back(index);
+        } else if (row + 1 == InsTableau.size()) {
+          PM[row].push_back(0);
+          // Create a new row and push beta
+          InsTableau.push_back(vector < int > {
+            beta
+          });
+          // Push the pointer to the new location
+          PM.push_back(vector < int > {
+            0
+          });
+        }
+      } else {
+        if ((row + 1) == InsTableau.size()) {
+          InsTableau.push_back(vector < int > {beta});
+          int tablsize = InsTableau[row + 1].size();
+          PM.push_back(vector < int > {tablsize - 1});
+          PM[row].push_back(index);
+        } else {
+          PM[row].push_back(index);
+          ModifiedLinearSearch(InsTableau, PM, beta, row + 1, ptrindex);
+        }
+      }
+      return;
+    }
+  } else {
+    // Check if the new alpha is greater than the last element pointed by p_1
+    // If it's empty, create a new vector and push the element into it
+    InsTableau.push_back(vector < int > {alpha});
+    PM.push_back(vector < int > {0});
+  }
+}
+
+vector < vector < int >> importPermutationsFromFile(const string & filename) {
+  vector < vector < int >> permutations;
+  ifstream file(filename);
+  if (file.is_open()) {
+    string line;
+    while (getline(file, line)) {
+      vector < int > permutation;
+      istringstream iss(line);
+      int num;
+      while (iss >> num) {
+        permutation.push_back(num);
+      }
+      permutations.push_back(permutation);
+    }
+    file.close();
+  } else {
+    cerr << "Unable to open file: " << filename << endl;
+  }
+  return permutations;
+}
+
+int main() {
+  // Insertion tableau (InsTableau) and pointer matrix (PM) 
+  vector < vector < int >> InsTableau;
+
+  vector < vector < int >> PM;
+  clock_t start, end;
+
+  // Iterate through the permutation and insert elements into the Insertion Tableau
+  vector < vector < int >> permutations = importPermutationsFromFile("Per.txt");
+  int row = 0;
+  // ptrindex stores the column index of PM where last insertion was done. It is initially set to 0. 
+  int ptrindex = 0;    
+
+  /* Recording the starting clock tick.*/
+  start = clock();
+
+  // Iterate through the permutation and insert elements into Young Tableau
+  for (int i = 0; i < permutations.size(); ++i) {
+    for (int num: permutations[i]) {
+      ModifiedLinearSearch(InsTableau, PM, num, row, ptrindex);
+    }
+    cout << counter << endl;
+    counter = 0;
+
+    InsTableau.clear();
+    PM.clear();
+  }
+
+  // Recording the end clock tick.
+  end = clock();
+
+  // Calculating total time taken by the program.
+  double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+  cout << "Time taken by program is : " << fixed << time_taken;
+  cout << " sec " << endl;
+
+  return 0;
+}
+
+
