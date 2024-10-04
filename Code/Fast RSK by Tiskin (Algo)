@@ -1,3 +1,5 @@
+//Returns number of comparisons and time taken to run 1000 inputs of varied sizes (i.e., 10^2, 10^3 , 10^4) according to file input.
+
 #include <iostream>
 
 #include <vector>
